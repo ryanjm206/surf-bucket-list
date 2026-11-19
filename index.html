@@ -734,6 +734,11 @@ header h1 span{color:#ffb39f}
 @media (min-width:800px){ .grab{display:none} .scroll{padding-top:12px} }
 .grab i{width:40px;height:5px;border-radius:3px;background:#cfd6de}
 .scroll{overflow-y:auto;padding:4px 16px 24px;flex:1;-webkit-overflow-scrolling:touch}
+.sortrow{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:10px -16px 2px;padding:0 16px}
+.sortrow::-webkit-scrollbar{display:none}
+.sortrow .lab{font-size:12px;color:var(--muted);align-self:center;flex:none;font-weight:600}
+.sb{flex:none;border:1px solid var(--line);background:#f3f6f9;color:var(--ink);border-radius:999px;padding:7px 12px;font-size:13px;cursor:pointer;white-space:nowrap}
+.sb.on{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
 .grp{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:16px 0 6px;font-weight:700}
 .row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .row:last-child{border-bottom:0}
@@ -1515,6 +1520,29 @@ const ICON = { fly: '✈️', car: '🚗', boat: '🚤' };
 const GROUPS = ['Indonesia', 'Pacific', 'Australia', 'New Zealand', 'Asia & Indian Ocean'];
 SPOTS.sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group));
 SPOTS.forEach((s, i) => s.n = i + 1);
+// rough door-to-waves hours from the "total" text, e.g. "~9–10 hrs" → 9.5, "~1.5 days" → 36
+SPOTS.forEach(s => {
+  const nums = (s.total.match(/\d+(\.\d+)?/g) || ['99']).map(Number);
+  const avg = nums.length > 1 ? (nums[0] + nums[1]) / 2 : nums[0];
+  s.hrs = /day/.test(s.total) ? avg * 24 : avg;
+});
+const SORTS = [
+  ['default', 'Region'],
+  ['easy', '✈️ Easiest to get to'],
+  ['hard', '🧭 Hardest to get to'],
+  ['quiet', '🧍 Least crowded'],
+  ['busy', '🧍🧍🧍 Most crowded']
+];
+let sortBy = 'default';
+const byTravel = (a, b) => a.hrs - b.hrs || a.route.length - b.route.length;
+function sorted(list) {
+  const l = [...list];
+  if (sortBy === 'easy') l.sort(byTravel);
+  else if (sortBy === 'hard') l.sort((a, b) => byTravel(b, a));
+  else if (sortBy === 'quiet') l.sort((a, b) => a.crowd - b.crowd || byTravel(a, b));
+  else if (sortBy === 'busy') l.sort((a, b) => b.crowd - a.crowd || byTravel(a, b));
+  return l;
+}
 
 function km(a, b) {
   const R = 6371, r = Math.PI / 180;
@@ -1685,10 +1713,12 @@ function renderList() {
   const shown = SPOTS.filter(visible);
   content.innerHTML = `
     <div class="sub" style="margin-top:6px">${filtersOn() || filter !== 'All' ? `${shown.length} of ${SPOTS.length} spots match · <button class="clear">Clear filters</button>` : `${SPOTS.length} spots · ${doneCount} surfed · tap one for the route`}</div>
+    <div class="sortrow"><span class="lab">Sort</span>${SORTS.map(([k, l]) => `<button class="sb ${sortBy === k ? 'on' : ''}" data-sort="${k}">${l}</button>`).join('')}</div>
     ${shown.length ? '' : '<p class="empty" style="margin-top:12px">No spots match. Try more crowd or another level.</p>'}
-    ${groups.filter(g => shown.some(s => s.group === g)).map(g => `
+    ${(sortBy === 'default' ? groups.filter(g => shown.some(s => s.group === g)).map(g => [g, shown.filter(s => s.group === g)])
+                            : [[SORTS.find(x => x[0] === sortBy)[1].replace(/^\S+\s/, ''), sorted(shown)]]).map(([g, list]) => `
       <div class="grp">${g}</div>
-      ${shown.filter(s => s.group === g).map(s => `
+      ${list.map(s => `
         <div class="row" data-id="${s.id}">
           <div class="num ${state.done[s.id] ? 'done' : ''}">${state.done[s.id] ? '✓' : s.n}</div>
           <div class="t"><div class="n">${esc(s.name)}${s.hidden ? ' <span title="Hidden gem">🤫</span>' : ''}</div><div class="s">${esc(s.total)} · ${fmtKm(km(SYD, s.ll))}</div><div class="s">${stars(s.crowd)}${filtersOn() ? ` · ${s.breaks.filter(breakMatch).length} break${s.breaks.filter(breakMatch).length > 1 ? 's' : ''} match` : ''}</div></div>
@@ -1700,6 +1730,8 @@ function renderList() {
   content.scrollTop = 0;
 }
 content.addEventListener('click', e => {
+  const sb = e.target.closest('.sb');
+  if (sb) { sortBy = sb.dataset.sort; renderList(); return; }
   const r = e.target.closest('.row'); if (r) { go(r.dataset.id); return; }
   if (e.target.closest('.back')) { location.hash = ''; return; }
   if (e.target.closest('.clear')) { maxCrowd = 5; lvSel.clear(); filter = 'All'; renderChips(); filtersChanged(); return; }
