@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Luke &amp; Ryan's Surf Bucket List</title>
+<style>
+/* required styles */
+
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box,
+.leaflet-image-layer,
+.leaflet-layer {
+	position: absolute;
+	left: 0;
+	top: 0;
+	}
+.leaflet-container {
+	overflow: hidden;
+	}
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	-webkit-user-select: none;
+	   -moz-user-select: none;
+	        user-select: none;
+	  -webkit-user-drag: none;
+	}
+/* Prevents IE11 from highlighting tiles in blue */
+.leaflet-tile::selection {
+	background: transparent;
+}
+/* Safari renders non-retina tile on retina better with this, but Chrome is worse */
+.leaflet-safari .leaflet-tile {
+	image-rendering: -webkit-optimize-contrast;
+	}
+/* hack that prevents hw layers "stretching" when loading new tiles */
+.leaflet-safari .leaflet-tile-container {
+	width: 1600px;
+	height: 1600px;
+	-webkit-transform-origin: 0 0;
+	}
+.leaflet-marker-icon,
+.leaflet-marker-shadow {
+	display: block;
+	}
+/* .leaflet-container svg: reset svg max-width decleration shipped in Joomla! (joomla.org) 3.x */
+/* .leaflet-container img: map is broken in FF if you have max-width: 100% on tiles */
+.leaflet-container .leaflet-overlay-pane svg {
+	max-width: none !important;
+	max-height: none !important;
+	}
+.leaflet-container .leaflet-marker-pane img,
+.leaflet-container .leaflet-shadow-pane img,
+.leaflet-container .leaflet-tile-pane img,
+.leaflet-container img.leaflet-image-layer,
+.leaflet-container .leaflet-tile {
+	max-width: none !important;
+	max-height: none !important;
+	width: auto;
+	padding: 0;
+	}
+
+.leaflet-container img.leaflet-tile {
+	/* See: https://bugs.chromium.org/p/chromium/issues/detail?id=600120 */
+	mix-blend-mode: plus-lighter;
+}
+
+.leaflet-container.leaflet-touch-zoom {
+	-ms-touch-action: pan-x pan-y;
+	touch-action: pan-x pan-y;
+	}
+.leaflet-container.leaflet-touch-drag {
+	-ms-touch-action: pinch-zoom;
+	/* Fallback for FF which doesn't support pinch-zoom */
+	touch-action: none;
+	touch-action: pinch-zoom;
+}
+.leaflet-container.leaflet-touch-drag.leaflet-touch-zoom {
+	-ms-touch-action: none;
+	touch-action: none;
+}
+.leaflet-container {
+	-webkit-tap-highlight-color: transparent;
+}
+.leaflet-container a {
+	-webkit-tap-highlight-color: rgba(51, 181, 229, 0.4);
+}
+.leaflet-tile {
+	filter: inherit;
+	visibility: hidden;
+	}
+.leaflet-tile-loaded {
+	visibility: inherit;
+	}
+.leaflet-zoom-box {
+	width: 0;
+	height: 0;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	z-index: 800;
+	}
+/* workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=888319 */
+.leaflet-overlay-pane svg {
+	-moz-user-select: none;
+	}
+
+.leaflet-pane         { z-index: 400; }
+
+.leaflet-tile-pane    { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane  { z-index: 500; }
+.leaflet-marker-pane  { z-index: 600; }
+.leaflet-tooltip-pane   { z-index: 650; }
+.leaflet-popup-pane   { z-index: 700; }
+
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg    { z-index: 200; }
+
+.leaflet-vml-shape {
+	width: 1px;
+	height: 1px;
+	}
+.lvml {
+	behavior: url(#default#VML);
+	display: inline-block;
+	position: absolute;
+	}
+
+
+/* control positioning */
+
+.leaflet-control {
+	position: relative;
+	z-index: 800;
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+.leaflet-top,
+.leaflet-bottom {
+	position: absolute;
+	z-index: 1000;
+	pointer-events: none;
+	}
+.leaflet-top {
+	top: 0;
+	}
+.leaflet-right {
+	right: 0;
+	}
+.leaflet-bottom {
+	bottom: 0;
+	}
+.leaflet-left {
+	left: 0;
+	}
+.leaflet-control {
+	float: left;
+	clear: both;
+	}
+.leaflet-right .leaflet-control {
+	float: right;
+	}
+.leaflet-top .leaflet-control {
+	margin-top: 10px;
+	}
+.leaflet-bottom .leaflet-control {
+	margin-bottom: 10px;
+	}
+.leaflet-left .leaflet-control {
+	margin-left: 10px;
+	}
+.leaflet-right .leaflet-control {
+	margin-right: 10px;
+	}
+
+
+/* zoom and fade animations */
+
+.leaflet-fade-anim .leaflet-popup {
+	opacity: 0;
+	-webkit-transition: opacity 0.2s linear;
+	   -moz-transition: opacity 0.2s linear;
+	        transition: opacity 0.2s linear;
+	}
+.leaflet-fade-anim .leaflet-map-pane .leaflet-popup {
+	opacity: 1;
+	}
+.leaflet-zoom-animated {
+	-webkit-transform-origin: 0 0;
+	    -ms-transform-origin: 0 0;
+	        transform-origin: 0 0;
+	}
+svg.leaflet-zoom-animated {
+	will-change: transform;
+}
+
+.leaflet-zoom-anim .leaflet-zoom-animated {
+	-webkit-transition: -webkit-transform 0.25s cubic-bezier(0,0,0.25,1);
+	   -moz-transition:    -moz-transform 0.25s cubic-bezier(0,0,0.25,1);
+	        transition:         transform 0.25s cubic-bezier(0,0,0.25,1);
+	}
+.leaflet-zoom-anim .leaflet-tile,
+.leaflet-pan-anim .leaflet-tile {
+	-webkit-transition: none;
+	   -moz-transition: none;
+	        transition: none;
+	}
+
+.leaflet-zoom-anim .leaflet-zoom-hide {
+	visibility: hidden;
+	}
+
+
+/* cursors */
+
+.leaflet-interactive {
+	cursor: pointer;
+	}
+.leaflet-grab {
+	cursor: -webkit-grab;
+	cursor:    -moz-grab;
+	cursor:         grab;
+	}
+.leaflet-crosshair,
+.leaflet-crosshair .leaflet-interactive {
+	cursor: crosshair;
+	}
+.leaflet-popup-pane,
+.leaflet-control {
+	cursor: auto;
+	}
+.leaflet-dragging .leaflet-grab,
+.leaflet-dragging .leaflet-grab .leaflet-interactive,
+.leaflet-dragging .leaflet-marker-draggable {
+	cursor: move;
+	cursor: -webkit-grabbing;
+	cursor:    -moz-grabbing;
+	cursor:         grabbing;
+	}
+
+/* marker & overlays interactivity */
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-image-layer,
+.leaflet-pane > svg path,
+.leaflet-tile-container {
+	pointer-events: none;
+	}
+
+.leaflet-marker-icon.leaflet-interactive,
+.leaflet-image-layer.leaflet-interactive,
+.leaflet-pane > svg path.leaflet-interactive,
+svg.leaflet-image-layer.leaflet-interactive path {
+	pointer-events: visiblePainted; /* IE 9-10 doesn't have auto */
+	pointer-events: auto;
+	}
+
+/* visual tweaks */
+
+.leaflet-container {
+	background: #ddd;
+	outline-offset: 1px;
+	}
+.leaflet-container a {
+	color: #0078A8;
+	}
+.leaflet-zoom-box {
+	border: 2px dotted #38f;
+	background: rgba(255,255,255,0.5);
+	}
+
+
+/* general typography */
+.leaflet-container {
+	font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+	font-size: 12px;
+	font-size: 0.75rem;
+	line-height: 1.5;
+	}
+
+
+/* general toolbar styles */
+
+.leaflet-bar {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.65);
+	border-radius: 4px;
+	}
+.leaflet-bar a {
+	background-color: #fff;
+	border-bottom: 1px solid #ccc;
+	width: 26px;
+	height: 26px;
+	line-height: 26px;
+	display: block;
+	text-align: center;
+	text-decoration: none;
+	color: black;
+	}
+.leaflet-bar a,
+.leaflet-control-layers-toggle {
+	background-position: 50% 50%;
+	background-repeat: no-repeat;
+	display: block;
+	}
+.leaflet-bar a:hover,
+.leaflet-bar a:focus {
+	background-color: #f4f4f4;
+	}
+.leaflet-bar a:first-child {
+	border-top-left-radius: 4px;
+	border-top-right-radius: 4px;
+	}
+.leaflet-bar a:last-child {
+	border-bottom-left-radius: 4px;
+	border-bottom-right-radius: 4px;
+	border-bottom: none;
+	}
+.leaflet-bar a.leaflet-disabled {
+	cursor: default;
+	background-color: #f4f4f4;
+	color: #bbb;
+	}
+
+.leaflet-touch .leaflet-bar a {
+	width: 30px;
+	height: 30px;
+	line-height: 30px;
+	}
+.leaflet-touch .leaflet-bar a:first-child {
+	border-top-left-radius: 2px;
+	border-top-right-radius: 2px;
+	}
+.leaflet-touch .leaflet-bar a:last-child {
+	border-bottom-left-radius: 2px;
+	border-bottom-right-radius: 2px;
+	}
+
+/* zoom control */
+
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out {
+	font: bold 18px 'Lucida Console', Monaco, monospace;
+	text-indent: 1px;
+	}
+
+.leaflet-touch .leaflet-control-zoom-in, .leaflet-touch .leaflet-control-zoom-out  {
+	font-size: 22px;
+	}
+
+
+/* layers control */
+
+.leaflet-control-layers {
+	box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+	background: #fff;
+	border-radius: 5px;
+	}
+.leaflet-control-layers-toggle {
+	background-image: url(images/layers.png);
+	width: 36px;
+	height: 36px;
+	}
+.leaflet-retina .leaflet-control-layers-toggle {
+	background-image: url(images/layers-2x.png);
+	background-size: 26px 26px;
+	}
+.leaflet-touch .leaflet-control-layers-toggle {
+	width: 44px;
+	height: 44px;
+	}
+.leaflet-control-layers .leaflet-control-layers-list,
+.leaflet-control-layers-expanded .leaflet-control-layers-toggle {
+	display: none;
+	}
+.leaflet-control-layers-expanded .leaflet-control-layers-list {
+	display: block;
+	position: relative;
+	}
+.leaflet-control-layers-expanded {
+	padding: 6px 10px 6px 6px;
+	color: #333;
+	background: #fff;
+	}
+.leaflet-control-layers-scrollbar {
+	overflow-y: scroll;
+	overflow-x: hidden;
+	padding-right: 5px;
+	}
+.leaflet-control-layers-selector {
+	margin-top: 2px;
+	position: relative;
+	top: 1px;
+	}
+.leaflet-control-layers label {
+	display: block;
+	font-size: 13px;
+	font-size: 1.08333em;
+	}
+.leaflet-control-layers-separator {
+	height: 0;
+	border-top: 1px solid #ddd;
+	margin: 5px -10px 5px -6px;
+	}
+
+/* Default icon URLs */
+.leaflet-default-icon-path { /* used only in path-guessing heuristic, see L.Icon.Default */
+	background-image: url(images/marker-icon.png);
+	}
+
+
+/* attribution and scale controls */
+
+.leaflet-container .leaflet-control-attribution {
+	background: #fff;
+	background: rgba(255, 255, 255, 0.8);
+	margin: 0;
+	}
+.leaflet-control-attribution,
+.leaflet-control-scale-line {
+	padding: 0 5px;
+	color: #333;
+	line-height: 1.4;
+	}
+.leaflet-control-attribution a {
+	text-decoration: none;
+	}
+.leaflet-control-attribution a:hover,
+.leaflet-control-attribution a:focus {
+	text-decoration: underline;
+	}
+.leaflet-attribution-flag {
+	display: inline !important;
+	vertical-align: baseline !important;
+	width: 1em;
+	height: 0.6669em;
+	}
+.leaflet-left .leaflet-control-scale {
+	margin-left: 5px;
+	}
+.leaflet-bottom .leaflet-control-scale {
+	margin-bottom: 5px;
+	}
+.leaflet-control-scale-line {
+	border: 2px solid #777;
+	border-top: none;
+	line-height: 1.1;
+	padding: 2px 5px 1px;
+	white-space: nowrap;
+	-moz-box-sizing: border-box;
+	     box-sizing: border-box;
+	background: rgba(255, 255, 255, 0.8);
+	text-shadow: 1px 1px #fff;
+	}
+.leaflet-control-scale-line:not(:first-child) {
+	border-top: 2px solid #777;
+	border-bottom: none;
+	margin-top: -2px;
+	}
+.leaflet-control-scale-line:not(:first-child):not(:last-child) {
+	border-bottom: 2px solid #777;
+	}
+
+.leaflet-touch .leaflet-control-attribution,
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	box-shadow: none;
+	}
+.leaflet-touch .leaflet-control-layers,
+.leaflet-touch .leaflet-bar {
+	border: 2px solid rgba(0,0,0,0.2);
+	background-clip: padding-box;
+	}
+
+
+/* popup */
+
+.leaflet-popup {
+	position: absolute;
+	text-align: center;
+	margin-bottom: 20px;
+	}
+.leaflet-popup-content-wrapper {
+	padding: 1px;
+	text-align: left;
+	border-radius: 12px;
+	}
+.leaflet-popup-content {
+	margin: 13px 24px 13px 20px;
+	line-height: 1.3;
+	font-size: 13px;
+	font-size: 1.08333em;
+	min-height: 1px;
+	}
+.leaflet-popup-content p {
+	margin: 17px 0;
+	margin: 1.3em 0;
+	}
+.leaflet-popup-tip-container {
+	width: 40px;
+	height: 20px;
+	position: absolute;
+	left: 50%;
+	margin-top: -1px;
+	margin-left: -20px;
+	overflow: hidden;
+	pointer-events: none;
+	}
+.leaflet-popup-tip {
+	width: 17px;
+	height: 17px;
+	padding: 1px;
+
+	margin: -10px auto 0;
+	pointer-events: auto;
+
+	-webkit-transform: rotate(45deg);
+	   -moz-transform: rotate(45deg);
+	    -ms-transform: rotate(45deg);
+	        transform: rotate(45deg);
+	}
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+	background: white;
+	color: #333;
+	box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+	}
+.leaflet-container a.leaflet-popup-close-button {
+	position: absolute;
+	top: 0;
+	right: 0;
+	border: none;
+	text-align: center;
+	width: 24px;
+	height: 24px;
+	font: 16px/24px Tahoma, Verdana, sans-serif;
+	color: #757575;
+	text-decoration: none;
+	background: transparent;
+	}
+.leaflet-container a.leaflet-popup-close-button:hover,
+.leaflet-container a.leaflet-popup-close-button:focus {
+	color: #585858;
+	}
+.leaflet-popup-scrolled {
+	overflow: auto;
+	}
+
+.leaflet-oldie .leaflet-popup-content-wrapper {
+	-ms-zoom: 1;
+	}
+.leaflet-oldie .leaflet-popup-tip {
+	width: 24px;
+	margin: 0 auto;
+
+	-ms-filter: "progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678)";
+	filter: progid:DXImageTransform.Microsoft.Matrix(M11=0.70710678, M12=0.70710678, M21=-0.70710678, M22=0.70710678);
+	}
+
+.leaflet-oldie .leaflet-control-zoom,
+.leaflet-oldie .leaflet-control-layers,
+.leaflet-oldie .leaflet-popup-content-wrapper,
+.leaflet-oldie .leaflet-popup-tip {
+	border: 1px solid #999;
+	}
+
+
+/* div icon */
+
+.leaflet-div-icon {
+	background: #fff;
+	border: 1px solid #666;
+	}
+
+
+/* Tooltip */
+/* Base styles for the element that has a tooltip */
+.leaflet-tooltip {
+	position: absolute;
+	padding: 6px;
+	background-color: #fff;
+	border: 1px solid #fff;
+	border-radius: 3px;
+	color: #222;
+	white-space: nowrap;
+	-webkit-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+	pointer-events: none;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+	}
+.leaflet-tooltip.leaflet-interactive {
+	cursor: pointer;
+	pointer-events: auto;
+	}
+.leaflet-tooltip-top:before,
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	position: absolute;
+	pointer-events: none;
+	border: 6px solid transparent;
+	background: transparent;
+	content: "";
+	}
+
+/* Directions */
+
+.leaflet-tooltip-bottom {
+	margin-top: 6px;
+}
+.leaflet-tooltip-top {
+	margin-top: -6px;
+}
+.leaflet-tooltip-bottom:before,
+.leaflet-tooltip-top:before {
+	left: 50%;
+	margin-left: -6px;
+	}
+.leaflet-tooltip-top:before {
+	bottom: 0;
+	margin-bottom: -12px;
+	border-top-color: #fff;
+	}
+.leaflet-tooltip-bottom:before {
+	top: 0;
+	margin-top: -12px;
+	margin-left: -6px;
+	border-bottom-color: #fff;
+	}
+.leaflet-tooltip-left {
+	margin-left: -6px;
+}
+.leaflet-tooltip-right {
+	margin-left: 6px;
+}
+.leaflet-tooltip-left:before,
+.leaflet-tooltip-right:before {
+	top: 50%;
+	margin-top: -6px;
+	}
+.leaflet-tooltip-left:before {
+	right: 0;
+	margin-right: -12px;
+	border-left-color: #fff;
+	}
+.leaflet-tooltip-right:before {
+	left: 0;
+	margin-left: -12px;
+	border-right-color: #fff;
+	}
+
+/* Printing */
+
+@media print {
+	/* Prevent printers from removing background-images of controls. */
+	.leaflet-control {
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+		}
+	}
+
+:root{
+  --ocean:#9fcbe2; --land:#f4ecd8; --coast:#d6c49b;
+  --ink:#0d2235; --muted:#5b6b7a; --line:#e3e8ee; --bg:#ffffff;
+  --brand:#0a5d8f; --accent:#ff6b4a; --sheet-h:42vh;
+  --B:#1f9d55; --I:#2b6cb0; --A:#dd6b20; --E:#c53030;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--ocean);-webkit-font-smoothing:antialiased}
+#map{position:fixed;inset:0;background:var(--ocean)}
+.leaflet-container{background:var(--ocean);font-family:inherit}
+header{position:fixed;top:0;left:0;right:0;z-index:1000;padding:12px 14px 10px;background:linear-gradient(180deg,rgba(13,34,53,.92),rgba(13,34,53,.78));color:#fff;backdrop-filter:blur(6px)}
+header h1{margin:0;font-size:18px;letter-spacing:.2px;font-weight:800}
+header h1 span{color:#ffb39f}
+.chips{display:flex;gap:6px;margin-top:8px;overflow-x:auto;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;border-radius:999px;padding:5px 11px;font-size:13px;white-space:nowrap;cursor:pointer}
+.frow{display:flex;align-items:center;gap:6px;margin-top:7px;overflow-x:auto;scrollbar-width:none}
+.frow::-webkit-scrollbar{display:none}
+.flab{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,.7);flex:none;width:44px}
+.fc{border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;border-radius:8px;padding:4px 9px;font-size:12.5px;white-space:nowrap;cursor:pointer;flex:none}
+.fc.on{background:#fff;color:var(--ink);font-weight:650;border-color:#fff}
+.fc.lvB.on{background:var(--B);border-color:var(--B);color:#fff}.fc.lvI.on{background:var(--I);border-color:var(--I);color:#fff}
+.fc.lvA.on{background:var(--A);border-color:var(--A);color:#fff}.fc.lvE.on{background:var(--E);border-color:var(--E);color:#fff}
+.brk.off{opacity:.35}
+.clear{border:0;background:none;color:var(--brand);font-weight:600;font-size:13px;cursor:pointer;padding:0}
+.chip.on{background:#fff;color:var(--ink);border-color:#fff;font-weight:600}
+#panel{position:fixed;z-index:1001;background:var(--bg);box-shadow:0 -6px 24px rgba(13,34,53,.18);display:flex;flex-direction:column}
+@media (max-width:799px){
+  #panel{left:0;right:0;bottom:0;height:var(--sheet-h);border-radius:16px 16px 0 0;transition:height .25s ease}
+  #panel.tall{height:72vh}
+  #panel.mini{height:118px}
+}
+@media (min-width:800px){
+  #panel{top:var(--hh,96px);right:14px;bottom:14px;width:390px;border-radius:14px}
+}
+.grab{padding:8px 0 2px;display:flex;justify-content:center;cursor:pointer;flex:none}
+@media (min-width:800px){ .grab{display:none} .scroll{padding-top:12px} }
+.grab i{width:40px;height:5px;border-radius:3px;background:#cfd6de}
+.scroll{overflow-y:auto;padding:4px 16px 24px;flex:1;-webkit-overflow-scrolling:touch}
+.grp{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:16px 0 6px;font-weight:700}
+.row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.row:last-child{border-bottom:0}
+.num{flex:none;width:26px;height:26px;border-radius:50%;background:var(--ink);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.num.done{background:var(--B)}
+.row .t{flex:1;min-width:0}
+.row .n{font-weight:650;font-size:15px}
+.row .s{font-size:12.5px;color:var(--muted);margin-top:1px}
+.lv{display:inline-flex;gap:3px;flex:none}
+.pill{font-size:10.5px;font-weight:700;color:#fff;border-radius:5px;padding:2px 6px;line-height:1.4}
+.pill.B{background:var(--B)}.pill.I{background:var(--I)}.pill.A{background:var(--A)}.pill.E{background:var(--E)}
+.back{border:0;background:none;color:var(--brand);font-size:14px;padding:6px 0;cursor:pointer;font-weight:600}
+h2{margin:2px 0 2px;font-size:24px;font-weight:800}
+.sub{color:var(--muted);font-size:13.5px}
+.stats{display:flex;gap:8px;margin:12px 0 4px}
+.stat{flex:1;background:#f3f6f9;border-radius:10px;padding:8px 10px}
+.stat b{display:block;font-size:16px}
+.stat small{color:var(--muted);font-size:11.5px}
+h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:18px 0 6px}
+.steps{list-style:none;margin:0;padding:0}
+.steps li{display:flex;gap:10px;align-items:flex-start;padding:6px 0;font-size:14.5px}
+.steps .ic{flex:none;width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.ic.fly{background:#e6f0fa}.ic.car{background:#f1efe7}.ic.boat{background:#e3f7f4}
+.steps .w{color:var(--muted);font-size:12.5px}
+p{font-size:14.5px;line-height:1.5;margin:6px 0}
+.brk{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}
+.brk:last-child{border-bottom:0}
+.brk .t{flex:1}
+.brk .n{font-weight:600;font-size:14.5px}
+.brk .s{font-size:12.5px;color:var(--muted)}
+.crowd{letter-spacing:-1px;white-space:nowrap;font-size:13px}.crowd i{font-style:normal;opacity:.18;filter:grayscale(1)}
+.stat .crowd{font-size:14px}
+.ckey{font-size:12px;color:var(--muted);margin-top:6px}
+.legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.done-btn{margin-top:12px;width:100%;border:1.5px solid var(--ink);background:#fff;color:var(--ink);border-radius:10px;padding:10px;font-size:14.5px;font-weight:650;cursor:pointer}
+.done-btn.on{background:var(--B);border-color:var(--B);color:#fff}
+.done-btn[disabled]{opacity:.5;cursor:default}
+.photos{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.photos .ph{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:#eef2f6}
+.photos img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in}
+.photos .x{position:absolute;top:4px;right:4px;border:0;border-radius:50%;width:24px;height:24px;background:rgba(0,0,0,.55);color:#fff;font-size:13px;cursor:pointer}
+.photos .x.sure{width:auto;border-radius:12px;padding:0 8px;background:var(--E)}
+.add{aspect-ratio:1;border:1.5px dashed #b8c3ce;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--muted);font-size:12px;cursor:pointer;background:#fafbfc}
+.add b{font-size:22px;line-height:1}
+.empty{font-size:13px;color:var(--muted);background:#f3f6f9;border-radius:10px;padding:10px 12px}
+.banner{font-size:13px;line-height:1.45;border-radius:10px;padding:9px 11px;margin-top:10px}
+.banner.hid{background:#eef7f4;color:#14532d}
+.banner.spec{background:#fff6e0;color:#7a4b00}
+.note{font-size:11.5px;color:var(--muted);margin-top:18px;line-height:1.45}
+.mk{width:28px;height:28px;border-radius:50%;background:var(--ink);color:#fff;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;transition:transform .15s}
+.mk.done{background:var(--B)}
+.mk.sel{background:var(--accent);transform:scale(1.25)}
+.home{width:30px;height:30px;border-radius:50%;background:#fff;border:2.5px solid var(--ink);display:flex;align-items:center;justify-content:center;font-size:15px;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.lbl{background:rgba(255,255,255,.92);border:0;border-radius:6px;box-shadow:0 1px 4px rgba(0,0,0,.2);font-weight:650;font-size:12px;padding:2px 7px;color:var(--ink)}
+.lbl:before{display:none}
+.hop{background:rgba(13,34,53,.85);color:#fff;border:0;border-radius:6px;font-size:11px;padding:2px 6px;box-shadow:none}
+.hop:before{display:none}
+#viewer{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.92);display:none;align-items:center;justify-content:center}
+#viewer.on{display:flex}
+#viewer img{max-width:94vw;max-height:88vh;border-radius:6px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);z-index:4000;background:var(--ink);color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<header>
+  <h1>Luke &amp; Ryan's <span>Surf Bucket List</span></h1>
+  <div class="chips" id="chips"></div>
+  <div class="frow" id="crowdRow"></div>
+  <div class="frow" id="lvRow"></div>
+</header>
+<aside id="panel">
+  <div class="grab" id="grab"><i></i></div>
+  <div class="scroll" id="content"></div>
+</aside>
+<div id="viewer"><img alt=""></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="file" accept="image/*" multiple hidden>
+
+<script src="leaflet.js"></script>
+<script>
+// Travel times are approximate one-way estimates from Sydney. Pacific longitudes are shifted +360 so the map doesn't wrap.
+const SYD = [-33.946, 151.177];
+const LV = { B: 'Beginner', I: 'Intermediate', A: 'Advanced', E: 'Expert' };
+
+const SPOTS = [
+  // ---------------- INDONESIA ----------------
+  {
+    id: 'bali', group: 'Indonesia', name: 'Bali', area: 'Bukit Peninsula, Canggu & east coast',
+    crowd: 4,
+    ll: [-8.815, 115.088],
+    route: [
+      { mode: 'fly', to: 'Denpasar (DPS)', ll: [-8.748, 115.167], time: '6h 15m direct' },
+      { mode: 'car', to: 'Uluwatu', ll: [-8.815, 115.088], time: '45–60 min' }
+    ],
+    total: '~7.5 hrs',
+    season: 'Apr–Oct for the Bukit and west coast. Nov–Mar for Keramas and the east coast.',
+    overview: 'The easiest trip on the list. World-class lefts on the Bukit, mellow beach peaks in Canggu, and a whole second set of reefs on the east side in wet season.',
+    breaks: [
+      ['Uluwatu', 'Left reef, several sections', 'IA', 4],
+      ['Padang Padang', 'Shallow left barrel', 'E', 4],
+      ['Bingin', 'Short, hollow left', 'IA', 4],
+      ['Impossibles', 'Long, fast left walls', 'IA', 3],
+      ['Balangan', 'Fun left reef', 'I', 3],
+      ['Dreamland', 'Beach peak', 'BI', 4],
+      ['Green Ball / Nyang Nyang', 'Quieter south-facing reefs', 'IA', 2],
+      ['Keramas', 'Performance right (wet season)', 'IA', 4],
+      ['Canggu (Old Mans, Batu Bolong)', 'Soft reef and beach peaks', 'B', 5],
+      ['Medewi', 'Long, mellow left point (3 hrs west)', 'BI', 3]
+    ]
+  },
+  {
+    id: 'lembongan', group: 'Indonesia', name: 'Nusa Lembongan', area: 'Small island off Bali\'s east coast',
+    crowd: 3,
+    ll: [-8.675, 115.44],
+    route: [
+      { mode: 'fly', to: 'Denpasar (DPS)', ll: [-8.748, 115.167], time: '6h 15m direct' },
+      { mode: 'car', to: 'Sanur harbour', ll: [-8.68, 115.263], time: '30–40 min' },
+      { mode: 'boat', to: 'Nusa Lembongan', ll: [-8.675, 115.44], time: '30–40 min fast boat' }
+    ],
+    total: '~8 hrs',
+    season: 'Apr–Oct (dry season southeast trades).',
+    overview: 'Three reef breaks off one beach, all reached by a short boat ride or paddle. Clear water and a slower pace than mainland Bali.',
+    breaks: [
+      ['Shipwrecks', 'Right reef', 'IA', 3],
+      ['Lacerations', 'Shallow, hollow right', 'A', 2],
+      ['Playgrounds', 'Softer lefts and rights', 'BI', 3]
+    ]
+  },
+  {
+    id: 'lombok', group: 'Indonesia', name: 'Lombok', area: 'South coast (Kuta Lombok) & Desert Point',
+    crowd: 3,
+    ll: [-8.895, 116.28],
+    route: [
+      { mode: 'fly', to: 'Denpasar (DPS)', ll: [-8.748, 115.167], time: '6h 15m direct' },
+      { mode: 'fly', to: 'Lombok (LOP)', ll: [-8.757, 116.277], time: '~40 min' },
+      { mode: 'car', to: 'Kuta Lombok', ll: [-8.895, 116.28], time: '~30 min' }
+    ],
+    total: '~9–10 hrs with connection',
+    season: 'Apr–Oct. Desert Point needs a big swell, usually Jun–Aug.',
+    overview: 'Bali\'s quieter neighbour. Kuta Lombok is the base, with boat-access bays that suit every level. Desert Point in the southwest is one of the best lefts in the world when it\'s on.',
+    breaks: [
+      ['Desert Point', 'Long, inconsistent left barrel', 'E', 4],
+      ['Gerupuk (Inside / Outside / Don-Don)', 'Boat-access bay, several peaks', 'BIA', 3],
+      ['Inside Ekas', 'Mellow left', 'I', 2],
+      ['Outside Ekas', 'Heavier right', 'A', 2],
+      ['Mawi', 'A-frame, hollow left', 'IA', 3],
+      ['Selong Belanak', 'Sandy beach', 'B', 2]
+    ]
+  },
+  {
+    id: 'sumbawa', group: 'Indonesia', name: 'Sumbawa', area: 'Lakey Peak (Hu\'u) & West Sumbawa',
+    crowd: 2,
+    ll: [-8.81, 118.38],
+    route: [
+      { mode: 'fly', to: 'Denpasar (DPS)', ll: [-8.748, 115.167], time: '6h 15m direct' },
+      { mode: 'fly', to: 'Bima (BMU)', ll: [-8.54, 118.687], time: '~1h 15m' },
+      { mode: 'car', to: 'Lakey Peak', ll: [-8.81, 118.38], time: '~2.5 hrs' }
+    ],
+    total: '~12 hrs with connection',
+    season: 'Apr–Oct.',
+    overview: 'Lakey has a cluster of reefs in one bay with offshore winds most of the dry season. West Sumbawa (Scar Reef, Supersuck, Yo-Yos) is a separate trip via Lombok and the ferry.',
+    breaks: [
+      ['Lakey Peak', 'A-frame barrels', 'IA', 3],
+      ['Lakey Pipe', 'Left barrel', 'A', 3],
+      ['Periscopes', 'Right', 'A', 2],
+      ['Nungas', 'Left and right reef', 'IA', 2],
+      ['Cobblestones', 'Right', 'I', 2],
+      ['Scar Reef (West Sumbawa)', 'Hollow left barrel', 'A', 2],
+      ['Supersuck (West Sumbawa)', 'Very hollow left', 'E', 3],
+      ['Yo-Yos (West Sumbawa)', 'Right', 'IA', 2]
+    ]
+  },
+  {
+    id: 'mentawai', group: 'Indonesia', name: 'Mentawai Islands', area: 'Off West Sumatra',
+    crowd: 3,
+    ll: [-2.2, 99.65],
+    route: [
+      { mode: 'fly', to: 'Kuala Lumpur (KUL)', ll: [2.745, 101.71], time: '~8h 30m' },
+      { mode: 'fly', to: 'Padang (PDG)', ll: [-0.787, 100.28], time: '~1h 20m' },
+      { mode: 'boat', to: 'Mentawais', ll: [-2.2, 99.65], time: '3–4 hr ferry, or overnight charter' }
+    ],
+    total: '~1.5 days',
+    season: 'Apr–Oct is peak. Shoulder months are quieter.',
+    overview: 'The famous one. Dozens of world-class reefs spread across a chain of islands, mostly done by charter boat or from a surf camp. Lots of the heavier waves are for experienced surfers.',
+    breaks: [
+      ['Macaronis', 'Playful, high-performance left', 'IA', 4],
+      ['HTs (Lance\'s Right)', 'Perfect right barrel', 'A', 4],
+      ['Lance\'s Left', 'Left reef', 'IA', 3],
+      ['Rifles', 'Heavy, long right barrel', 'E', 3],
+      ['Telescopes', 'Left', 'A', 2],
+      ['Bank Vaults', 'Heavy right', 'A', 2],
+      ['Kandui Left', 'Heavy left barrel', 'E', 3],
+      ['E-Bay', 'Left', 'IA', 2],
+      ['Thunders', 'Left and right', 'IA', 3]
+    ]
+  },
+  {
+    id: 'simeulue', group: 'Indonesia', name: 'Simeulue', area: 'Far north Sumatra (Aceh)',
+    crowd: 1,
+    ll: [2.43, 96.2],
+    route: [
+      { mode: 'fly', to: 'Kuala Lumpur (KUL)', ll: [2.745, 101.71], time: '~8h 30m' },
+      { mode: 'fly', to: 'Medan (KNO)', ll: [3.642, 98.885], time: '~1h 15m' },
+      { mode: 'fly', to: 'Simeulue (Sinabang)', ll: [2.41, 96.33], time: '~1 hr' },
+      { mode: 'car', to: 'South coast camps', ll: [2.43, 96.2], time: '~30–60 min' }
+    ],
+    total: '~1.5 days',
+    season: 'Late Mar–early Nov.',
+    overview: 'The hidden gem. A dozen-plus named reefs on the south coast and much smaller crowds than the Mentawais. Most people stay at a camp right on a break.',
+    breaks: [
+      ['The Peak', 'Consistent A-frame', 'I', 2],
+      ['Dylan\'s Right', 'Hollow, fast right barrel', 'A', 2],
+      ['Dylan\'s Left', 'Left', 'IA', 1],
+      ['Thailand\'s Left', 'Performance left, long barrels', 'A', 2],
+      ['Monkey Trees', 'Barrelling wave', 'A', 2],
+      ['One Thong', 'Soft left over deep reef', 'BI', 1]
+    ]
+  },
+
+  // ---------------- PACIFIC ----------------
+  {
+    id: 'samoa', group: 'Pacific', name: 'Samoa', area: 'Upolu south coast & Savai\'i',
+    crowd: 1,
+    ll: [-14.06, 188.4],
+    route: [
+      { mode: 'fly', to: 'Apia (APW)', ll: [-13.83, 187.99], time: '~5–5.5 hrs' },
+      { mode: 'car', to: 'Upolu south coast', ll: [-14.06, 188.4], time: '~1–1.5 hrs' },
+      { mode: 'boat', to: 'Reef passes', ll: [-14.06, 188.4], time: '5–25 min' }
+    ],
+    total: '~7 hrs',
+    season: 'May–Oct for south swells. Salani works most of the year.',
+    overview: 'Powerful reef-pass waves, mostly reached by boat from a surf resort. Savai\'i is wilder and quieter. Expect shallow coral.',
+    breaks: [
+      ['Salani Right', 'Consistent right reef pass', 'IA', 2],
+      ['Salani Left', 'Left reef pass', 'IA', 1],
+      ['Boulders', 'Left off a lava point, big-wave spot', 'E', 1],
+      ['Coconuts', 'Right reef', 'A', 2],
+      ['Nu\'usafe\'e Island', 'Reef', 'A', 1],
+      ['Aganoa Right (Savai\'i)', 'Very consistent right', 'IA', 1]
+    ]
+  },
+  {
+    id: 'tonga', group: 'Pacific', name: 'Tonga', area: 'Ha\'atafu, Tongatapu',
+    crowd: 1,
+    ll: [-21.06, 184.67],
+    route: [
+      { mode: 'fly', to: 'Nuku\'alofa (TBU)', ll: [-21.24, 184.85], time: '~4 hrs' },
+      { mode: 'car', to: 'Ha\'atafu Beach', ll: [-21.06, 184.67], time: '~40 min' }
+    ],
+    total: '~5 hrs',
+    season: 'May–Oct for strong groundswells.',
+    overview: 'Short, punchy reef waves a 100 m paddle from the beach on Tongatapu\'s west tip. Vava\'u in the north has more by boat. No board hire, so bring your own.',
+    breaks: [
+      ['The Peak', 'Reef peak', 'IA', 1],
+      ['Kamikaze\'s', 'Shallow, inconsistent reef', 'A', 1],
+      ['Fishtraps', 'Reef, rough inside at low tide', 'IA', 1],
+      ['Motels', 'Reef', 'IA', 1],
+      ['Pass Lefts / Pass Rights (Kanokupolu)', 'Easier reef passes', 'BI', 1]
+    ]
+  },
+  {
+    id: 'vanuatu', group: 'Pacific', name: 'Vanuatu', area: 'Efate & Tanna',
+    crowd: 1,
+    ll: [-17.79, 168.28],
+    route: [
+      { mode: 'fly', to: 'Port Vila (VLI)', ll: [-17.70, 168.32], time: '~3h 40m' },
+      { mode: 'car', to: 'Pango Point', ll: [-17.79, 168.28], time: '~20 min' }
+    ],
+    total: '~4.5 hrs',
+    season: 'Mar–Dec for southern swells.',
+    overview: 'Close to home and uncrowded. Most waves are coral reefs around Efate. Tanna, a short domestic flight south, has Lenakel and Port Resolution.',
+    breaks: [
+      ['Pango Point', 'Lefts and rights over coral', 'IA', 2],
+      ['Breakas', 'Left and right reef', 'A', 1],
+      ['Devil\'s Point', 'Consistent long right', 'A', 1],
+      ['Erakor Reef', 'Left reef', 'A', 1],
+      ['Lenakel (Tanna)', 'Thick left over shallow reef', 'A', 1],
+      ['Port Resolution (Tanna)', 'Fun waves to bigger points', 'BIA', 1]
+    ]
+  },
+  {
+    id: 'newcal', group: 'Pacific', name: 'New Caledonia', area: 'Outer barrier reef off Grande Terre',
+    crowd: 1,
+    ll: [-21.87, 165.97],
+    route: [
+      { mode: 'fly', to: 'Nouméa (NOU)', ll: [-22.016, 166.213], time: '~3 hrs' },
+      { mode: 'car', to: 'Boulouparis boat ramp', ll: [-21.86, 166.05], time: '~45 min' },
+      { mode: 'boat', to: 'Ténia', ll: [-21.87, 165.97], time: '~20–30 min' }
+    ],
+    total: '~4.5 hrs',
+    season: 'Apr–Oct for south swells.',
+    overview: 'Waves break on passes in the outer barrier reef, so nearly everything needs a boat. Warm water and French food in Nouméa.',
+    breaks: [
+      ['Ténia', 'Left and right on the outer reef', 'IA', 2],
+      ['Dumbéa Pass', 'Left, boat from Nouméa', 'A', 1],
+      ['Bourail / Roche Percée', 'Beach break (2 hrs north)', 'BI', 1]
+    ]
+  },
+
+  // ---------------- AUSTRALIA ----------------
+  {
+    id: 'goldcoast', group: 'Australia', name: 'Gold Coast', area: 'Southern points, QLD',
+    crowd: 5,
+    ll: [-28.164, 153.55],
+    route: [
+      { mode: 'fly', to: 'Gold Coast (OOL)', ll: [-28.164, 153.505], time: '~1h 25m' },
+      { mode: 'car', to: 'Snapper Rocks', ll: [-28.164, 153.55], time: '~5 min' }
+    ],
+    total: '~2 hrs',
+    season: 'Feb–May for cyclone swells.',
+    overview: 'A run of right-hand points within a few kilometres. When a cyclone swell lines up the Superbank, it\'s one of the best waves in the world, and one of the most crowded.',
+    breaks: [
+      ['Snapper Rocks / Superbank', 'Long right point', 'IA', 5],
+      ['Kirra', 'Hollow right barrel', 'A', 4],
+      ['Greenmount', 'Mellower right point', 'BI', 4],
+      ['Burleigh Heads', 'Right point barrel', 'IA', 4],
+      ['Currumbin Alley', 'Learner-friendly right', 'B', 3]
+    ]
+  },
+  {
+    id: 'byron', group: 'Australia', name: 'Byron Bay', area: 'Northern NSW',
+    crowd: 4,
+    ll: [-28.638, 153.637],
+    route: [
+      { mode: 'fly', to: 'Ballina (BNK)', ll: [-28.834, 153.562], time: '~1h 35m' },
+      { mode: 'car', to: 'Byron Bay', ll: [-28.638, 153.637], time: '~30 min' }
+    ],
+    total: '~2.5 hrs',
+    season: 'Feb–May, plus winter south swells for Lennox.',
+    overview: 'Easy-going waves around the cape and a heavy right point at Lennox 20 minutes south. Easy to drive up from Sydney too (~8 hrs).',
+    breaks: [
+      ['The Pass', 'Long, mellow right', 'BI', 5],
+      ['Wategos', 'Soft right, longboard wave', 'B', 4],
+      ['Tallows', 'Beach break', 'I', 2],
+      ['Broken Head', 'Right point', 'I', 3],
+      ['Lennox Head', 'Heavy right point over boulders', 'A', 4]
+    ]
+  },
+  {
+    id: 'perth', group: 'Australia', name: 'Perth & Rottnest', area: 'Perth metro & Rottnest Island, WA',
+    crowd: 2,
+    ll: [-31.87, 115.75],
+    route: [
+      { mode: 'fly', to: 'Perth (PER)', ll: [-31.94, 115.967], time: '~5h 15m' },
+      { mode: 'car', to: 'Trigg / Scarborough', ll: [-31.87, 115.75], time: '~30 min' }
+    ],
+    total: '~6 hrs',
+    season: 'Apr–Oct. Mornings before the sea breeze.',
+    overview: 'Smaller, wind-affected beaches in town, with Rottnest a 30–45 min ferry ride out for better reefs.',
+    breaks: [
+      ['Trigg Point', 'Reef and beach', 'I', 3],
+      ['Scarborough', 'Beach break', 'BI', 3],
+      ['Cottesloe', 'Reef', 'I', 3],
+      ['Strickland Bay (Rottnest)', 'Left reef', 'A', 2],
+      ['Chicken Reef (Rottnest)', 'Reef', 'IA', 2]
+    ]
+  },
+  {
+    id: 'margaret', group: 'Australia', name: 'Margaret River', area: 'South-west WA, 3 hrs from Perth',
+    crowd: 3,
+    ll: [-33.975, 114.99],
+    route: [
+      { mode: 'fly', to: 'Perth (PER)', ll: [-31.94, 115.967], time: '~5h 15m' },
+      { mode: 'car', to: 'Margaret River', ll: [-33.975, 114.99], time: '~3 hrs' }
+    ],
+    total: '~9 hrs',
+    season: 'Mar–Oct. Big, consistent Indian Ocean swell.',
+    overview: 'Powerful reefs and plenty of size. I added this because it\'s the main reason most surfers fly to WA.',
+    breaks: [
+      ['Main Break (Surfers Point)', 'Powerful left and right reef', 'A', 4],
+      ['The Box', 'Slabbing right', 'E', 2],
+      ['Yallingup', 'Reef', 'IA', 3],
+      ['Injidup Car Park', 'Right reef', 'IA', 3],
+      ['Gas Bay', 'Reef', 'I', 2],
+      ['Smiths Beach', 'Beach break', 'BI', 2]
+    ]
+  },
+  {
+    id: 'bells', group: 'Australia', name: 'Bells Beach', area: 'Torquay, Surf Coast VIC',
+    crowd: 4,
+    ll: [-38.369, 144.282],
+    route: [
+      { mode: 'fly', to: 'Avalon (AVV)', ll: [-38.039, 144.469], time: '~1h 20m' },
+      { mode: 'car', to: 'Bells Beach', ll: [-38.369, 144.282], time: '~40 min' }
+    ],
+    total: '~2.5 hrs',
+    season: 'Mar–Sep. Cold water, bring a 4/3.',
+    overview: 'Long, powerful right-hand reefs on the Surf Coast. Fly into Melbourne instead if Avalon flights don\'t suit (add ~45 min drive).',
+    breaks: [
+      ['Bells Bowl', 'Long right reef', 'IA', 4],
+      ['Rincon', 'Right reef', 'IA', 4],
+      ['Winkipop', 'Fast right', 'A', 4],
+      ['Jan Juc', 'Beach break', 'BI', 3],
+      ['Torquay Point', 'Gentle right', 'B', 3]
+    ]
+  },
+  // ---------------- MORE INDONESIA ----------------
+  {
+    id: 'gland', group: 'Indonesia', name: 'G-Land', area: 'Plengkung, Alas Purwo National Park, East Java',
+    crowd: 3,
+    ll: [-8.72, 114.36],
+    route: [
+      { mode: 'fly', to: 'Denpasar (DPS)', ll: [-8.748, 115.167], time: '6h 15m direct' },
+      { mode: 'car', to: 'Gilimanuk ferry', ll: [-8.16, 114.44], time: '~3 hrs' },
+      { mode: 'boat', to: 'Ketapang, Java', ll: [-8.14, 114.40], time: '~1 hr ferry' },
+      { mode: 'car', to: 'Grajagan', ll: [-8.62, 114.23], time: '~1.5 hrs' },
+      { mode: 'boat', to: 'G-Land camps', ll: [-8.72, 114.36], time: '~1 hr' }
+    ],
+    total: '~13–14 hrs',
+    season: 'Apr–Oct. Biggest Jun–Aug.',
+    overview: 'One of the best lefts on earth: a long reef in the jungle with sections that barrel for hundreds of metres. You stay in a surf camp inside the national park. Most camps run the transfer from Bali for you.',
+    breaks: [
+      ['Kongs', 'Big, outside left section', 'A', 2],
+      ['Moneytrees', 'Long, perfect left walls and barrels', 'A', 3],
+      ['Launching Pads', 'Fast, hollow left', 'A', 3],
+      ['Speedies', 'Shallow, very fast barrel', 'E', 3]
+    ]
+  },
+  {
+    id: 'sumba', group: 'Indonesia', name: 'Sumba', area: 'Nihi & west Sumba',
+    crowd: 1,
+    ll: [-9.78, 119.37],
+    route: [
+      { mode: 'fly', to: 'Denpasar (DPS)', ll: [-8.748, 115.167], time: '6h 15m direct' },
+      { mode: 'fly', to: 'Tambolaka (TMC)', ll: [-9.41, 119.24], time: '~1 hr' },
+      { mode: 'car', to: 'Nihi', ll: [-9.78, 119.37], time: '~1.5 hrs' }
+    ],
+    total: '~11 hrs with connection',
+    season: 'Apr–Oct.',
+    overview: 'Raw, empty island east of Bali. Occy\'s Left is world class but only Nihi Sumba guests can surf it, and numbers are capped daily. The rest of the coast has few surfers.',
+    breaks: [
+      ['Occy\'s Left (Nihi guests only)', 'Long, perfect left', 'A', 1],
+      ['Pero', 'Reef', 'IA', 1],
+      ['Tarimbang', 'Bay with beach and reef', 'BI', 1]
+    ]
+  },
+
+  // ---------------- MORE PACIFIC ----------------
+  {
+    id: 'fiji', group: 'Pacific', name: 'Fiji', area: 'Mamanuca reefs & Frigates Passage',
+    crowd: 3,
+    ll: [-17.88, 177.19],
+    route: [
+      { mode: 'fly', to: 'Nadi (NAN)', ll: [-17.755, 177.443], time: '~4 hrs direct' },
+      { mode: 'car', to: 'Port Denarau', ll: [-17.775, 177.38], time: '~20 min' },
+      { mode: 'boat', to: 'Tavarua / Namotu', ll: [-17.88, 177.19], time: '~30–45 min' }
+    ],
+    total: '~5.5 hrs',
+    season: 'Apr–Oct for south swells.',
+    overview: 'Some of the best reef passes in the world, close to Sydney. Cloudbreak is the headline wave. You base yourself on an island resort or go out by boat from the mainland.',
+    breaks: [
+      ['Cloudbreak', 'Powerful left over outer reef', 'AE', 4],
+      ['Restaurants', 'Shallow, perfect left', 'A', 3],
+      ['Swimming Pools', 'Softer right', 'I', 2],
+      ['Frigates Passage', 'Left, remote reef pass', 'A', 2]
+    ]
+  },
+  {
+    id: 'tahiti', group: 'Pacific', name: 'Tahiti', area: 'Teahupo\'o & Moorea, French Polynesia',
+    crowd: 3,
+    ll: [-17.85, 210.73],
+    route: [
+      { mode: 'fly', to: 'Auckland (AKL)', ll: [-37.008, 174.785], time: '~3 hrs' },
+      { mode: 'fly', to: 'Papeete (PPT)', ll: [-17.553, 210.39], time: '~5 hrs' },
+      { mode: 'car', to: 'Teahupo\'o', ll: [-17.85, 210.73], time: '~1h 15m' }
+    ],
+    total: '~12 hrs with connection',
+    season: 'May–Sep for south swells.',
+    overview: 'Home of Teahupo\'o, the heaviest barrel on the tour. Plenty of friendlier reef passes and black sand beaches around the island too.',
+    breaks: [
+      ['Teahupo\'o', 'Thick, slabbing left barrel', 'E', 3],
+      ['Taapuna', 'Left reef pass', 'A', 3],
+      ['Papara', 'Black sand beach break', 'BI', 3],
+      ['Ha\'apiti (Moorea)', 'Left reef pass', 'A', 2]
+    ]
+  },
+  {
+    id: 'hawaii', group: 'Pacific', name: 'North Shore, Oahu', area: 'Hawaii',
+    crowd: 5,
+    ll: [21.665, 201.95],
+    route: [
+      { mode: 'fly', to: 'Honolulu (HNL)', ll: [21.32, 202.08], time: '~10 hrs direct' },
+      { mode: 'car', to: 'North Shore', ll: [21.665, 201.95], time: '~1 hr' }
+    ],
+    total: '~11.5 hrs',
+    season: 'Nov–Feb for north swells. It\'s on right now.',
+    overview: 'Seven miles of the most famous waves in surfing. Powerful, crowded and heavily localised. Watch Pipe from the beach, surf the easier spots, and show respect in the water.',
+    breaks: [
+      ['Pipeline', 'Famous left barrel over shallow reef', 'E', 5],
+      ['Sunset Beach', 'Big, shifty right', 'A', 4],
+      ['Waimea Bay', 'Big-wave spot on giant days', 'E', 4],
+      ['Rocky Point', 'Rights and lefts', 'A', 4],
+      ['V-Land', 'Hollow beach-reef', 'IA', 4],
+      ['Chun\'s Reef', 'Mellow right', 'BI', 4]
+    ]
+  },
+
+  // ---------------- NEW ZEALAND ----------------
+  {
+    id: 'raglan', group: 'New Zealand', name: 'Raglan', area: 'West coast, North Island',
+    crowd: 3,
+    ll: [-37.82, 174.81],
+    route: [
+      { mode: 'fly', to: 'Auckland (AKL)', ll: [-37.008, 174.785], time: '~3 hrs' },
+      { mode: 'car', to: 'Raglan', ll: [-37.82, 174.81], time: '~2 hrs' }
+    ],
+    total: '~5.5 hrs',
+    season: 'Mar–Oct. Bring a 4/3 in winter.',
+    overview: 'A run of long left-hand points, among the longest in the world on a good swell. Relaxed surf town with an easy beach for learners.',
+    breaks: [
+      ['Manu Bay', 'Long left point', 'IA', 4],
+      ['Whale Bay', 'Left point over boulders', 'A', 3],
+      ['Indicators', 'Longest, fastest left of the points', 'A', 3],
+      ['Ngarunui Beach', 'Beach break', 'B', 3]
+    ]
+  },
+  {
+    id: 'taranaki', group: 'New Zealand', name: 'Taranaki', area: 'Surf Highway 45, North Island',
+    crowd: 2,
+    ll: [-39.17, 173.83],
+    route: [
+      { mode: 'fly', to: 'Auckland (AKL)', ll: [-37.008, 174.785], time: '~3 hrs' },
+      { mode: 'fly', to: 'New Plymouth (NPL)', ll: [-39.008, 174.18], time: '~50 min' },
+      { mode: 'car', to: 'Surf Highway 45', ll: [-39.17, 173.83], time: '~30 min' }
+    ],
+    total: '~6 hrs with connection',
+    season: 'Mar–Oct. Faces almost every swell direction.',
+    overview: 'A volcanic coast where the road loops past dozens of reefs and points. Because the coast curves, something is usually offshore. Hire a car and drive the loop.',
+    breaks: [
+      ['Stent Road', 'Quality right reef', 'A', 3],
+      ['Backdoor', 'Reef', 'IA', 2],
+      ['Kumara Patch', 'Left and right reef', 'IA', 2],
+      ['Fitzroy Beach', 'Beach break in New Plymouth', 'BI', 3]
+    ]
+  },
+
+  // ---------------- ASIA & INDIAN OCEAN ----------------
+  {
+    id: 'siargao', group: 'Asia & Indian Ocean', name: 'Siargao', area: 'General Luna, Philippines',
+    crowd: 4,
+    ll: [9.80, 126.17],
+    route: [
+      { mode: 'fly', to: 'Manila (MNL)', ll: [14.51, 121.02], time: '~8h 30m direct' },
+      { mode: 'fly', to: 'Siargao (IAO)', ll: [9.86, 126.01], time: '~1h 45m' },
+      { mode: 'car', to: 'General Luna', ll: [9.80, 126.17], time: '~30 min' }
+    ],
+    total: '~13 hrs with connection',
+    season: 'Aug–Nov for typhoon swells.',
+    overview: 'Cloud 9 put the island on the map. Lots of other reefs nearby by boat are much quieter, and the town has a fun scene.',
+    breaks: [
+      ['Cloud 9', 'Hollow right barrel', 'A', 4],
+      ['Quicksilver', 'Right reef (boat)', 'A', 2],
+      ['Stimpy\'s', 'Left reef (boat)', 'A', 2],
+      ['Jacking Horse', 'Easier reef', 'BI', 3],
+      ['Pacifico', 'Left and right reef, north of the island', 'IA', 2]
+    ]
+  },
+  {
+    id: 'maldives', group: 'Asia & Indian Ocean', name: 'Maldives', area: 'North Malé Atoll',
+    crowd: 3,
+    ll: [4.30, 73.58],
+    route: [
+      { mode: 'fly', to: 'Singapore (SIN)', ll: [1.364, 103.99], time: '~8 hrs' },
+      { mode: 'fly', to: 'Malé (MLE)', ll: [4.19, 73.53], time: '~4h 40m' },
+      { mode: 'boat', to: 'North Malé breaks', ll: [4.30, 73.58], time: '~20–40 min, or a charter' }
+    ],
+    total: '~15 hrs with connection',
+    season: 'Mar–Oct. Biggest Jun–Aug.',
+    overview: 'Clear water and fun, rippable reef passes. Resorts control access to some breaks, so a charter boat gets you the most variety.',
+    breaks: [
+      ['Sultans', 'Right reef', 'IA', 3],
+      ['Honky\'s', 'Long left walls', 'IA', 3],
+      ['Cokes', 'Heavy right', 'A', 3],
+      ['Chickens', 'Long left', 'IA', 3],
+      ['Jailbreaks', 'Right', 'IA', 2]
+    ]
+  },
+  // ---------------- HIDDEN & FRONTIER ----------------
+  {
+    id: 'telos', group: 'Indonesia', hidden: true, name: 'Telo Islands', area: 'Between Nias and the Mentawais, on the Equator',
+    crowd: 1,
+    ll: [-0.05, 98.3],
+    route: [
+      { mode: 'fly', to: 'Kuala Lumpur (KUL)', ll: [2.745, 101.71], time: '~8h 30m' },
+      { mode: 'fly', to: 'Padang (PDG)', ll: [-0.787, 100.28], time: '~1h 20m' },
+      { mode: 'boat', to: 'Telo Islands', ll: [-0.05, 98.3], time: 'Charter boat, or a fly-in transfer from a camp' }
+    ],
+    total: '~1.5–2 days',
+    season: 'Apr–Oct is the main season, but it works year round.',
+    overview: 'The quiet Mentawais. Around 25 named breaks in two zones, plus a dozen more secret spots that crews keep off maps on purpose. Protected channels mean something is usually surfable. A charter gets you both zones. Camps tend to surf only one.',
+    breaks: [
+      ['The Bubble', 'Super-sucky right that wraps 180°', 'A', 1],
+      ['Pasti', 'World-class right, inconsistent', 'A', 2],
+      ['Sipika Right', 'Long walls and tube sections', 'IA', 1],
+      ['Pinnacles', 'Scenic, shifty when big', 'IA', 1],
+      ['Coconuts (Le Bar)', 'Fun right', 'BI', 2],
+      ['Schoolyards', 'Rare Indo beach break', 'BI', 1]
+    ]
+  },
+  {
+    id: 'banyaks', group: 'Indonesia', hidden: true, name: 'Banyak Islands', area: '99 islands off north-west Sumatra (Aceh)',
+    crowd: 1,
+    ll: [2.1, 97.4],
+    route: [
+      { mode: 'fly', to: 'Kuala Lumpur (KUL)', ll: [2.745, 101.71], time: '~8h 30m' },
+      { mode: 'fly', to: 'Medan (KNO)', ll: [3.642, 98.885], time: '~1h 15m' },
+      { mode: 'car', to: 'Singkil', ll: [2.28, 97.79], time: 'Long drive or small domestic flight' },
+      { mode: 'boat', to: 'Banyak Islands', ll: [2.1, 97.4], time: 'Local boat (high tide only) or charter' }
+    ],
+    total: '~2 days',
+    season: 'Apr–Oct. Cobras works year round.',
+    overview: 'Sparsely populated islands best done on a charter boat. A tiny camp sits in the Bay of Plenty, but you\'re stuck with whatever the wind allows there. Treasure Island is the prize.',
+    breaks: [
+      ['Treasure Island', 'World-class right', 'A', 2],
+      ['Cobras', 'World-class, consistent left', 'A', 2],
+      ['Warrens', 'Fun right over reef and sand', 'I', 1],
+      ['Bay of Plenty reefs', 'Cluster of breaks out front of the camp', 'IA', 1]
+    ]
+  },
+  {
+    id: 'krui', group: 'Indonesia', hidden: true, name: 'Krui', area: 'Tanjung Setia, Lampung (south Sumatra mainland)',
+    crowd: 2,
+    ll: [-5.36, 104.0],
+    route: [
+      { mode: 'fly', to: 'Jakarta (CGK)', ll: [-6.126, 106.656], time: '~7.5 hrs' },
+      { mode: 'fly', to: 'Bandar Lampung (TKG)', ll: [-5.24, 105.18], time: '~45 min' },
+      { mode: 'car', to: 'Tanjung Setia', ll: [-5.36, 104.0], time: '~6–7 hrs' }
+    ],
+    total: '~1.5 days',
+    season: 'Apr–Oct (south-east trades are offshore).',
+    overview: 'A winding mainland coast with over a dozen quality waves and cheap camps. You scooter between breaks. Way Jambu is one of the heaviest barrels in Indonesia.',
+    breaks: [
+      ['Ujung Bocur (Karang Nyimbor)', 'Long left, 200–300 m rides', 'IA', 3],
+      ['Way Jambu ("Sumatran Pipeline")', 'Heavy barrel over shallow reef', 'E', 2],
+      ['The Peak', 'Reef peak', 'IA', 2],
+      ['Jimmy\'s Left / Jimmy\'s Right', '1 hr north of Krui', 'IA', 1],
+      ['Krui Left / Krui Right', 'Near town', 'I', 2],
+      ['Mandiri', 'Beach break', 'BI', 2]
+    ]
+  },
+  {
+    id: 'panaitan', group: 'Indonesia', hidden: true, name: 'Panaitan Island', area: 'Ujung Kulon National Park, West Java',
+    crowd: 1,
+    ll: [-6.6, 105.15],
+    route: [
+      { mode: 'fly', to: 'Jakarta (CGK)', ll: [-6.126, 106.656], time: '~7.5 hrs' },
+      { mode: 'car', to: 'West Java coast (Carita / Sumur)', ll: [-6.66, 105.58], time: '~4–5 hrs' },
+      { mode: 'boat', to: 'Panaitan', ll: [-6.6, 105.15], time: 'Charter boat, several hours' }
+    ],
+    total: '~1.5 days',
+    season: 'Apr–Oct.',
+    overview: 'An uninhabited island inside a national park, surfed from boats. One Palm Point is a dangerous, very shallow left barrel. Treat the transfer times here as rough; I don\'t have solid numbers for them.',
+    breaks: [
+      ['One Palm Point', 'Very shallow, fast left barrel', 'E', 1],
+      ['Other park reefs', 'Explored by charter boats', 'A', 0]
+    ]
+  },
+  {
+    id: 'rote', group: 'Indonesia', hidden: true, name: 'Rote', area: 'Nembrala, Indonesia\'s southernmost island',
+    crowd: 2,
+    ll: [-10.88, 122.82],
+    route: [
+      { mode: 'fly', to: 'Denpasar (DPS)', ll: [-8.748, 115.167], time: '6h 15m direct' },
+      { mode: 'fly', to: 'Kupang (KOE)', ll: [-10.17, 123.67], time: '~1h 45m' },
+      { mode: 'boat', to: 'Ba\'a, Rote', ll: [-10.73, 123.12], time: '~2 hr fast ferry' },
+      { mode: 'car', to: 'Nembrala', ll: [-10.88, 122.82], time: '~1.5 hrs' }
+    ],
+    total: '~1.5 days',
+    season: 'May–Oct.',
+    overview: 'Dry, laid-back island off West Timor. T-Land is a kilometre-long left with take-off spots for every level. More reefs sit on the offshore islands, reached by boat.',
+    breaks: [
+      ['T-Land', 'Kilometre-long left', 'IA', 3],
+      ['Bo\'a', 'Heavier right', 'A', 2],
+      ['Squealers', 'Small, fun reef', 'BI', 2],
+      ['Sandbar', 'Easier wave when it works', 'BI', 1]
+    ]
+  },
+  {
+    id: 'savu', group: 'Indonesia', hidden: true, spec: true, name: 'Savu (Sabu)', area: 'Between Sumba and Rote',
+    crowd: 0,
+    ll: [-10.5, 121.85],
+    route: [
+      { mode: 'fly', to: 'Denpasar (DPS)', ll: [-8.748, 115.167], time: '6h 15m direct' },
+      { mode: 'fly', to: 'Kupang (KOE)', ll: [-10.17, 123.67], time: '~1h 45m' },
+      { mode: 'boat', to: 'Savu', ll: [-10.5, 121.85], time: 'Charter boat (most surfers come this way)' }
+    ],
+    total: '~2 days',
+    season: 'May–Oct.',
+    overview: 'Remote, dry island about 100 km north-west of Rote, visited mostly by Savu Sea charter boats. Bring your own water, food and patience.',
+    breaks: [
+      ['Savu Right', 'Heavy right, up to 300 m over shallow reef', 'AE', 0],
+      ['Savu Left', 'Fast left with barrels and performance sections', 'A', 0]
+    ]
+  },
+  {
+    id: 'enggano', group: 'Indonesia', hidden: true, spec: true, name: 'Enggano', area: 'Remote island off Bengkulu, south-west Sumatra',
+    crowd: 0,
+    ll: [-5.38, 102.25],
+    route: [
+      { mode: 'fly', to: 'Jakarta (CGK)', ll: [-6.126, 106.656], time: '~7.5 hrs' },
+      { mode: 'fly', to: 'Bengkulu (BKS)', ll: [-3.86, 102.34], time: '~1h 15m' },
+      { mode: 'boat', to: 'Enggano', ll: [-5.38, 102.25], time: 'Ferry or charter. I don\'t know the current schedule.' }
+    ],
+    total: '~2–3 days',
+    season: 'Apr–Oct, best on south swells.',
+    overview: 'Almost deserted jungle island with reefs tucked inside deep bays, so there\'s an option for most winds. Very few surfers make the trip. Heavy rain makes camping hard. This is a true exploration trip.',
+    breaks: [
+      ['Unnamed bay lefts', 'Left reefs over live coral', 'IA', 0],
+      ['Unexplored reefs', 'Bring a guide and a boat', 'A', 0]
+    ]
+  },
+  {
+    id: 'morotai', group: 'Indonesia', hidden: true, spec: true, name: 'Morotai & Halmahera', area: 'North Maluku',
+    crowd: 1,
+    ll: [2.58, 128.55],
+    route: [
+      { mode: 'fly', to: 'Jakarta (CGK)', ll: [-6.126, 106.656], time: '~7.5 hrs' },
+      { mode: 'fly', to: 'Ternate (TTE)', ll: [0.83, 127.38], time: '~3.5 hrs' },
+      { mode: 'fly', to: 'Morotai', ll: [2.04, 128.32], time: 'Short domestic hop' },
+      { mode: 'car', to: 'Sopi Bay', ll: [2.58, 128.55], time: 'Drive or boat up the coast' }
+    ],
+    total: '~2 days',
+    season: 'Nov–Mar on north monsoon swell. It\'s in season now.',
+    overview: 'Indonesia\'s opposite season: it works in the wet season when Bali\'s west side goes flat. Morotai\'s north coast is starting to get a few surf losmen. Halmahera has more waves, but with few roads, most are boat-only. Treat my route as a rough guide.',
+    breaks: [
+      ['Indo Jiwa (Morotai)', 'Long, powerful right over shallow reef', 'E', 1],
+      ['Tacos (Morotai)', 'West coast rights in the corners of the bays', 'IA', 0],
+      ['Heavy\'s (Halmahera)', 'Intense, often untouched', 'A', 0],
+      ['Paniki Point (Halmahera)', 'Right reef on the north-west arm', 'BI', 0]
+    ]
+  },
+  {
+    id: 'kavieng', group: 'Pacific', hidden: true, name: 'Kavieng, PNG', area: 'New Ireland, Papua New Guinea',
+    crowd: 1,
+    ll: [-2.57, 150.8],
+    route: [
+      { mode: 'fly', to: 'Brisbane (BNE)', ll: [-27.384, 153.117], time: '~1h 30m' },
+      { mode: 'fly', to: 'Port Moresby (POM)', ll: [-9.443, 147.22], time: '~3 hrs' },
+      { mode: 'fly', to: 'Kavieng (KVG)', ll: [-2.58, 150.81], time: '~2 hrs' },
+      { mode: 'boat', to: 'Reefs', ll: [-2.57, 150.8], time: 'Dinghy from your lodge' }
+    ],
+    total: '~1–1.5 days',
+    season: 'Oct–Apr. It\'s in season now.',
+    overview: 'PNG runs a Surf Management Plan: local clans own the reefs, you pay a small fee and visitor numbers are capped. The result is empty lineups. You reach around seven breaks by dinghy, with charters running to outer atolls.',
+    breaks: [
+      ['Pikinini', 'Reef', 'IA', 1],
+      ['Nusa Right / Nusa Left', 'Reefs near Nusa Island Retreat', 'IA', 1],
+      ['Outer island reefs', 'By charter (PNG Surfaris)', 'A', 0]
+    ]
+  },
+  {
+    id: 'vanimo', group: 'Pacific', hidden: true, name: 'Vanimo, PNG', area: 'North coast near the Indonesian border',
+    crowd: 1,
+    ll: [-2.69, 141.3],
+    route: [
+      { mode: 'fly', to: 'Brisbane (BNE)', ll: [-27.384, 153.117], time: '~1h 30m' },
+      { mode: 'fly', to: 'Port Moresby (POM)', ll: [-9.443, 147.22], time: '~3 hrs' },
+      { mode: 'fly', to: 'Vanimo (VAI)', ll: [-2.69, 141.30], time: '~1h 30m' }
+    ],
+    total: '~1 day',
+    season: 'Oct–Apr. It\'s in season now.',
+    overview: 'Vanimo Surf Lodge sits on a right-hander with several other breaks close by. The lodge caps visitors at 16, and local surfers give guests wave priority under the management plan.',
+    breaks: [
+      ['Lido\'s Right (Vanimo Right)', 'Right out front of the lodge', 'IA', 1],
+      ['Nearby reefs and points', 'Waves for all levels within walking or paddle distance', 'BIA', 1]
+    ]
+  }
+];
+
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ICON = { fly: '✈️', car: '🚗', boat: '🚤' };
+const GROUPS = ['Indonesia', 'Pacific', 'Australia', 'New Zealand', 'Asia & Indian Ocean'];
+SPOTS.sort((a, b) => GROUPS.indexOf(a.group) - GROUPS.indexOf(b.group));
+SPOTS.forEach((s, i) => s.n = i + 1);
+
+function km(a, b) {
+  const R = 6371, r = Math.PI / 180;
+  const dLat = (b[0] - a[0]) * r, dLon = (b[1] - a[1]) * r;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLon / 2) ** 2;
+  return Math.round(2 * R * Math.asin(Math.sqrt(h)));
+}
+const fmtKm = k => k.toLocaleString('en-AU') + ' km';
+function levels(str) { return [...str].map(c => `<span class="pill ${c}">${LV[c]}</span>`).join(''); }
+function spotLevels(s) {
+  const set = new Set(s.breaks.flatMap(b => [...b[2]]));
+  return ['B', 'I', 'A', 'E'].filter(c => set.has(c)).map(c => `<span class="pill ${c}">${c}</span>`).join('');
+}
+function stars(n) { return `<span class="crowd" title="Crowd ${n}/5">${'🧍'.repeat(n)}<i>${'🧍'.repeat(5 - n)}</i></span>`; }
+const CROWD_KEY = 'Crowd: 0 = empty, 5 = Snapper Rocks';
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('on'), 2600); }
+
+// ---------- shared state (photos + surfed ticks) ----------
+const state = { photos: {}, done: {}, canWrite: false, canUpload: false, db: null, assets: null };
+
+// ---------- map ----------
+const map = L.map('map', { zoomControl: false, attributionControl: true, worldCopyJump: false, minZoom: 1, maxZoom: 11, zoomSnap: 0.25 });
+map.attributionControl.setPrefix(false).addAttribution('Coastlines: Natural Earth');
+L.control.zoom({ position: 'topleft' }).addTo(map);
+const ALL_BOUNDS = L.latLngBounds(SPOTS.map(s => s.ll).concat([SYD]));
+
+fetch('land.json').then(r => r.json()).then(geo => {
+  L.geoJSON(geo, { interactive: false, style: { color: '#d6c49b', weight: 0.8, fillColor: '#f4ecd8', fillOpacity: 1 } }).addTo(map).bringToBack();
+}).catch(() => {});
+
+L.marker(SYD, { icon: L.divIcon({ className: '', html: '<div class="home">🏠</div>', iconSize: [30, 30], iconAnchor: [15, 15] }), zIndexOffset: 500 })
+  .addTo(map).bindTooltip('Sydney (home)', { direction: 'top', offset: [0, -14], className: 'lbl' });
+
+const markers = {};
+function markerIcon(s, sel) {
+  const cls = 'mk' + (state.done[s.id] ? ' done' : '') + (sel ? ' sel' : '');
+  return L.divIcon({ className: '', html: `<div class="${cls}">${s.n}</div>`, iconSize: [28, 28], iconAnchor: [14, 14] });
+}
+SPOTS.forEach(s => {
+  const m = L.marker(s.ll, { icon: markerIcon(s, false), zIndexOffset: 1000 }).addTo(map);
+  m.bindTooltip(s.name, { direction: 'right', offset: [14, 0], className: 'lbl', permanent: false });
+  m.on('click', () => go(s.id));
+  markers[s.id] = m;
+});
+
+// route drawing
+const routeLayer = L.layerGroup().addTo(map);
+function arc(a, b) {
+  const pts = [], [y1, x1] = a, [y2, x2] = b;
+  const dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy);
+  const off = Math.min(d * 0.18, 8);
+  const cx = (x1 + x2) / 2 - dy / d * off * -1, cy = (y1 + y2) / 2 + dx / d * off * -1;
+  for (let t = 0; t <= 1.0001; t += 0.04) {
+    const x = (1 - t) ** 2 * x1 + 2 * (1 - t) * t * cx + t * t * x2;
+    const y = (1 - t) ** 2 * y1 + 2 * (1 - t) * t * cy + t * t * y2;
+    pts.push([y, x]);
+  }
+  return pts;
+}
+function drawRoute(s) {
+  routeLayer.clearLayers();
+  let from = SYD;
+  const all = [SYD];
+  s.route.forEach((leg, i) => {
+    const to = leg.ll;
+    if (km(from, to) > 0.5) {
+      let line;
+      if (leg.mode === 'fly') line = L.polyline(arc(from, to), { color: '#0d2235', weight: 2.5, dashArray: '7 7', opacity: .9 });
+      else if (leg.mode === 'boat') line = L.polyline([from, to], { color: '#00a3a3', weight: 4, dashArray: '2 7', lineCap: 'round' });
+      else line = L.polyline([from, to], { color: '#ff6b4a', weight: 4, opacity: .95 });
+      line.addTo(routeLayer);
+    }
+    if (i < s.route.length - 1 && leg.mode === 'fly') {
+      L.circleMarker(to, { radius: 5, color: '#fff', weight: 2, fillColor: '#0d2235', fillOpacity: 1 })
+        .bindTooltip(leg.to, { permanent: true, direction: 'top', offset: [0, -6], className: 'hop' }).addTo(routeLayer);
+    }
+    all.push(to); from = to;
+  });
+  return L.latLngBounds(all);
+}
+
+// ---------- panel ----------
+const panel = $('#panel'), content = $('#content');
+let filter = 'All', current = null;
+let maxCrowd = 5; const lvSel = new Set();
+const filtersOn = () => maxCrowd < 5 || lvSel.size > 0;
+function breakMatch(b) { return b[3] <= maxCrowd && (lvSel.size === 0 || [...b[2]].some(c => lvSel.has(c))); }
+function renderFilters() {
+  $('#crowdRow').innerHTML = '<span class="flab">Crowd</span>' + [1, 2, 3, 4, 5].map(n =>
+    `<button class="fc ${maxCrowd === n ? 'on' : ''}" data-c="${n}">${n === 5 ? 'Any' : '🧍'.repeat(n) + ' or less'}</button>`).join('');
+  $('#lvRow').innerHTML = '<span class="flab">Level</span>' + ['B', 'I', 'A', 'E'].map(c =>
+    `<button class="fc lv${c} ${lvSel.has(c) ? 'on' : ''}" data-l="${c}">${LV[c]}</button>`).join('');
+  document.documentElement.style.setProperty('--hh', ($('header').offsetHeight + 10) + 'px');
+}
+function filtersChanged() {
+  renderFilters();
+  if (current && !visible(current)) { location.hash = ''; return; }
+  if (current) renderSpot(current); else renderList();
+  fitFilter(!!current);
+}
+$('#crowdRow').addEventListener('click', e => { const b = e.target.closest('.fc'); if (!b) return; maxCrowd = +b.dataset.c; filtersChanged(); });
+$('#lvRow').addEventListener('click', e => { const b = e.target.closest('.fc'); if (!b) return; const c = b.dataset.l; lvSel.has(c) ? lvSel.delete(c) : lvSel.add(c); filtersChanged(); });
+
+function renderChips() {
+  $('#chips').innerHTML = ['All', 'Hidden', ...GROUPS].map(g => `<button class="chip ${g === filter ? 'on' : ''}" data-g="${g}">${g === 'Hidden' ? '🤫 Hidden gems' : g}</button>`).join('');
+}
+$('#chips').addEventListener('click', e => {
+  const b = e.target.closest('.chip'); if (!b) return;
+  filter = b.dataset.g; renderChips();
+  if (current) location.hash = ''; else renderList();
+  fitFilter();
+});
+function visible(s) { return (filter === 'All' || s.group === filter || (filter === 'Hidden' && s.hidden)) && s.breaks.some(breakMatch); }
+function fitFilter(noMove) {
+  SPOTS.forEach(s => { const m = markers[s.id]; if (visible(s)) m.addTo(map); else m.remove(); });
+  if (noMove) return;
+  if (filter === 'All' && !filtersOn()) { map.fitBounds(ALL_BOUNDS, padOpts()); return; }
+  const pts = SPOTS.filter(visible).map(s => s.ll); pts.push(SYD);
+  map.fitBounds(L.latLngBounds(pts), padOpts());
+}
+function padOpts() {
+  const wide = window.innerWidth >= 800;
+  const top = $('header').offsetHeight + 12;
+  return wide ? { paddingTopLeft: [30, top], paddingBottomRight: [420, 30] }
+              : { paddingTopLeft: [24, top], paddingBottomRight: [24, Math.round(window.innerHeight * (panel.classList.contains('tall') ? .72 : .42)) + 10] };
+}
+
+function renderList() {
+  current = null;
+  Object.values(markers).forEach((m, i) => m.setIcon(markerIcon(SPOTS[i], false)));
+  routeLayer.clearLayers();
+  const groups = GROUPS.filter(g => filter === 'All' || filter === 'Hidden' || g === filter);
+  const doneCount = SPOTS.filter(s => state.done[s.id]).length;
+  const shown = SPOTS.filter(visible);
+  content.innerHTML = `
+    <div class="sub" style="margin-top:6px">${filtersOn() || filter !== 'All' ? `${shown.length} of ${SPOTS.length} spots match · <button class="clear">Clear filters</button>` : `${SPOTS.length} spots · ${doneCount} surfed · tap one for the route`}</div>
+    ${shown.length ? '' : '<p class="empty" style="margin-top:12px">No spots match. Try more crowd or another level.</p>'}
+    ${groups.filter(g => shown.some(s => s.group === g)).map(g => `
+      <div class="grp">${g}</div>
+      ${shown.filter(s => s.group === g).map(s => `
+        <div class="row" data-id="${s.id}">
+          <div class="num ${state.done[s.id] ? 'done' : ''}">${state.done[s.id] ? '✓' : s.n}</div>
+          <div class="t"><div class="n">${esc(s.name)}${s.hidden ? ' <span title="Hidden gem">🤫</span>' : ''}</div><div class="s">${esc(s.total)} · ${fmtKm(km(SYD, s.ll))}</div><div class="s">${stars(s.crowd)}${filtersOn() ? ` · ${s.breaks.filter(breakMatch).length} break${s.breaks.filter(breakMatch).length > 1 ? 's' : ''} match` : ''}</div></div>
+          <div class="lv">${spotLevels(s)}</div>
+        </div>`).join('')}
+    `).join('')}
+    <div class="legend" style="margin-top:16px">${levels('BIAE')}</div><div class="ckey">${stars(5)} ${CROWD_KEY}</div>
+    <div class="note">Travel times are rough one-way estimates from Sydney and change with airline schedules. Check flights before booking. Distances are straight-line from Sydney.</div>`;
+  content.scrollTop = 0;
+}
+content.addEventListener('click', e => {
+  const r = e.target.closest('.row'); if (r) { go(r.dataset.id); return; }
+  if (e.target.closest('.back')) { location.hash = ''; return; }
+  if (e.target.closest('.clear')) { maxCrowd = 5; lvSel.clear(); filter = 'All'; renderChips(); filtersChanged(); return; }
+  if (e.target.closest('.done-btn')) { toggleDone(); return; }
+  if (e.target.closest('.add')) { $('#file').click(); return; }
+  const x = e.target.closest('.x');
+  if (x) {
+    if (!x.classList.contains('sure')) { x.classList.add('sure'); x.textContent = 'Delete?'; setTimeout(() => { if (x.isConnected) { x.classList.remove('sure'); x.textContent = '✕'; } }, 3000); }
+    else deletePhoto(x.dataset.doc, x.dataset.asset);
+    return;
+  }
+  const img = e.target.closest('.photos img');
+  if (img) { $('#viewer img').src = img.src; $('#viewer').classList.add('on'); }
+});
+$('#viewer').addEventListener('click', () => $('#viewer').classList.remove('on'));
+
+function renderSpot(s) {
+  const dist = km(SYD, s.ll);
+  const photos = state.photos[s.id] || [];
+  const done = !!state.done[s.id];
+  content.innerHTML = `
+    <button class="back">← All spots</button>
+    <h2>${esc(s.name)}</h2>
+    <div class="sub">${esc(s.area)} · ${s.group}</div>
+    ${s.spec ? `<div class="banner spec">⚠️ <b>Frontier, low info.</b> Few public reports. Break details and transfers are best guesses, so check with a charter operator or local guide first.</div>`
+      : s.hidden ? `<div class="banner hid">🤫 <b>Hidden gem.</b> Known to a small crowd and well off the usual Indo or Pacific path.</div>` : ''}
+    <div class="stats">
+      <div class="stat"><b>${fmtKm(dist)}</b><small>from Sydney</small></div>
+      <div class="stat"><b>${esc(s.total)}</b><small>door to waves</small></div>
+      <div class="stat"><b>${stars(s.crowd)}</b><small>crowd</small></div>
+    </div>
+    <h3>Getting there</h3>
+    <ul class="steps">
+      ${s.route.map(l => `<li><span class="ic ${l.mode}">${ICON[l.mode]}</span><div>${esc(l.to)}<div class="w">${esc(l.time)}</div></div></li>`).join('')}
+    </ul>
+    <h3>Overview</h3>
+    <p>${esc(s.overview)}</p>
+    <p><b>Season:</b> ${esc(s.season)}</p>
+    <h3>Breaks</h3>
+    ${(filtersOn() ? [...s.breaks].sort((a, b) => breakMatch(b) - breakMatch(a)) : s.breaks).map(b => `<div class="brk ${filtersOn() && !breakMatch(b) ? 'off' : ''}"><div class="t"><div class="n">${esc(b[0])}</div><div class="s">${esc(b[1])}</div><div class="s">${stars(b[3])}</div></div><div class="lv">${[...b[2]].map(c => `<span class="pill ${c}">${c}</span>`).join('')}</div></div>`).join('')}
+    <div class="legend" style="margin-top:8px">${levels('BIAE')}</div><div class="ckey">${CROWD_KEY}. My estimates for a good swell in season.</div>
+    ${photos.length || state.canUpload ? `<h3>Photos</h3>` : ''}
+    ${photos.length || state.canUpload ? `<div class="photos">
+      ${photos.map(p => `<div class="ph"><img src="${esc(p.url)}" alt="${esc(s.name)}" loading="lazy">${state.canUpload ? `<button class="x" data-doc="${esc(p.doc)}" data-asset="${esc(p.asset)}">✕</button>` : ''}</div>`).join('')}
+      ${state.canUpload ? `<div class="add"><b>+</b>Add photo</div>` : ''}
+    </div>` : ''}
+    ${state.db ? `<button class="done-btn ${done ? 'on' : ''}" ${state.canWrite ? '' : 'disabled'}>${done ? '✓ Surfed it' : 'Mark as surfed'}</button>` : ''}
+  `;
+  content.scrollTop = 0;
+}
+
+function go(id) { if (location.hash !== '#' + id) location.hash = id; else route(); }
+function route() {
+  const id = location.hash.slice(1);
+  const s = SPOTS.find(x => x.id === id);
+  if (!s) { renderList(); fitFilter(); return; }
+  if (!visible(s)) { filter = 'All'; renderChips(); if (!visible(s)) { maxCrowd = 5; lvSel.clear(); renderFilters(); } fitFilter(true); }
+  current = s;
+  SPOTS.forEach(x => markers[x.id].setIcon(markerIcon(x, x.id === s.id)));
+  const b = drawRoute(s);
+  if (window.innerWidth < 800) panel.classList.remove('mini');
+  renderSpot(s);
+  map.fitBounds(b, { ...padOpts(), maxZoom: 9 });
+}
+window.addEventListener('hashchange', route);
+
+// mobile sheet: tap the handle to cycle sizes
+$('#grab').addEventListener('click', () => {
+  if (panel.classList.contains('mini')) panel.classList.remove('mini');
+  else if (panel.classList.contains('tall')) { panel.classList.remove('tall'); panel.classList.add('mini'); }
+  else panel.classList.add('tall');
+});
+
+// ---------- shared data: photos + surfed ticks ----------
+function refresh() {
+  if (current) { renderSpot(current); SPOTS.forEach(x => markers[x.id].setIcon(markerIcon(x, x.id === current.id))); }
+  else renderList();
+}
+async function toggleDone() {
+  if (!state.db || !current) return;
+  const s = current, v = !state.done[s.id];
+  state.done[s.id] = v; refresh();
+  try { await state.db.doc('surfed/' + s.id).set({ done: v, at: Date.now() }); }
+  catch (e) { state.done[s.id] = !v; refresh(); toast("Couldn't save that. You may only have view access."); }
+}
+$('#file').addEventListener('change', async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  if (!files.length || !current || !state.assets) return;
+  const s = current;
+  toast(`Uploading ${files.length} photo${files.length > 1 ? 's' : ''}…`);
+  for (const f of files) {
+    try {
+      const blob = await shrink(f);
+      const a = await state.assets.upload(blob);
+      await state.db.collection('photos').add({ spot: s.id, asset: a.id, at: Date.now() });
+    } catch (err) { toast("A photo didn't upload. Try a smaller image."); }
+  }
+});
+async function deletePhoto(docId, assetId) {
+  try {
+    await state.db.doc('photos/' + docId).delete();
+    try { await state.assets.delete(assetId); } catch (_) {}
+  } catch (e) { toast("Couldn't delete that photo."); }
+}
+// resize big phone photos before upload
+function shrink(file) {
+  return new Promise(res => {
+    if (!/^image\/(jpeg|png|webp|heic|heif)/.test(file.type)) return res(file);
+    const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => {
+      const max = 1800, k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(b => res(b || file), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); res(file); };
+    img.src = url;
+  });
+}
+
+fetch('photos.json').then(r => r.ok ? r.json() : {}).then(m => {
+  if (state.db || !m) return;
+  Object.entries(m).forEach(([id, list]) => { state.photos[id] = (list || []).map(u => ({ url: u, doc: '', asset: '' })); });
+  refresh();
+}).catch(() => {});
+
+(async () => {
+  if (!window.claude || !claude.use) return;
+  try {
+    const [db, user, assets] = await Promise.all([claude.use('db'), claude.use('user'), claude.use('assets')]);
+    if (!db) return;
+    state.db = db; state.assets = assets;
+    let w = null;
+    try { w = user && user.can ? await user.can('data.write') : null; } catch (_) {}
+    state.canWrite = w !== false;
+    state.canUpload = !!assets && state.canWrite;
+    db.collection('surfed').onSnapshot(snap => {
+      state.done = {};
+      snap.docs.forEach(d => { const v = d.data(); if (v && v.done) state.done[d.id] = true; });
+      refresh();
+    }, () => {});
+    db.collection('photos').orderBy('at').onSnapshot(snap => {
+      state.photos = {};
+      snap.docs.forEach(d => {
+        const v = d.data(); if (!v || !v.spot || !v.asset) return;
+        (state.photos[v.spot] = state.photos[v.spot] || []).push({ doc: d.id, asset: v.asset, url: '/_blob/' + v.asset });
+      });
+      refresh();
+    }, () => {});
+    refresh();
+  } catch (_) {}
+})();
+
+// ---------- start ----------
+renderChips();
+renderFilters();
+window.addEventListener('resize', renderFilters);
+map.fitBounds(ALL_BOUNDS, padOpts());
+route();
+</script>
+</body>
+</html>
